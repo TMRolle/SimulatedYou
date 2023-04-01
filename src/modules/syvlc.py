@@ -27,7 +27,7 @@ def play_output_file(loop_file, input_queue, output_queue):
                 time.sleep(0.1)
 
             # Write to the output queue to signal that the file has finished playing
-            output_queue.put(output_file)
+            output_queue.put("finished")
 
             # Start playing the loop file again
             media = instance.media_new(loop_file)
