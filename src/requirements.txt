@@ -1,0 +1,9 @@
+SpeechRecognition
+TTS
+opencv-contrib-python
+getch
+pyaudio
+openai-whisper
+sounddevice
+playsound
+langchain
