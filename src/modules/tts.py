@@ -1,5 +1,4 @@
 from TTS.api import TTS
-from pprint import pprint
 from playsound import playsound
 from queue import Empty
 from multiprocessing import Event, Queue
@@ -11,7 +10,8 @@ def run_tts(exit_event: Event, input_queue: Queue, output_queue: Queue):
     try:
       text_in = input_queue.get(timeout=0.1)
       tts.tts_to_file(text_in, speaker_wav="input.wav", language="en", file_path="output.wav")
-      playsound("output.wav")
+      #playsound("output.wav")
+      output_queue.put(1)
     except Empty:
       pass
 
