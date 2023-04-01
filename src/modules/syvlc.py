@@ -9,13 +9,14 @@ def play_output_file(loop_file, input_queue, output_queue):
     player = instance.media_player_new()
     media = instance.media_new(loop_file)
     player.set_media(media)
+    player.set_fullscreen(True)    
     player.play()
 
     while True:
         try:
             # Wait for a new file to play
             output_file = input_queue.get(timeout=1)
-
+            player.set_fullscreen(True)
             # Stop playing the loop file and play the new file
             player.stop()
             media = instance.media_new(output_file)
