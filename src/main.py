@@ -8,6 +8,7 @@ from modules.stt import run_stt
 from modules.tts import run_tts
 from modules.run_wav2lip import run_wav2lip
 from modules.new_alpaca import run_alpaca_damn_you
+from modules.syvlc import play_output_file
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -24,12 +25,14 @@ def main_func(args):
     alpaca_out_queue = manager.Queue()
     tts_out_queue = manager.Queue()
     wav2lip_out_queue = manager.Queue()
+    player_out_queue = manager.Queue()
 
     keyboard_interpreter = context.Process(target=keyboard_in, args=(exit_event, keyboard_in_queue, [stt_in_queue]))
     stt_process = context.Process(target=run_stt, args=(exit_event, stt_in_queue, stt_out_queue))
     alpaca_process = context.Process(target=run_alpaca_damn_you, args=(exit_event, stt_out_queue, alpaca_out_queue))
     tts_process = context.Process(target=run_tts, args=(exit_event, alpaca_out_queue, tts_out_queue))
     wav2lip_process = context.Process(target=run_wav2lip, args=(exit_event, tts_out_queue, wav2lip_out_queue))
+    vlc_process = context.Process(target=play_output_file, args=(exit_event, wav2lip_out_queue, player_out_queue))
 
 
     keyboard_interpreter.start()
@@ -37,6 +40,7 @@ def main_func(args):
     alpaca_process.start()
     tts_process.start()
     wav2lip_process.start()
+    vlc_process.start()
 
     while not exit_event.is_set():
       val = getch()
@@ -48,6 +52,7 @@ def main_func(args):
     alpaca_process.join()
     tts_process.join()
     wav2lip_process.join()
+    vlc_process.join()
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()

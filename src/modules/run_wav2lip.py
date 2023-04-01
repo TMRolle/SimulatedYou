@@ -248,6 +248,7 @@ def run_wav2lip(exit_event: Event, input_queue: Queue, output_queue: Queue):
       run_signal = input_queue.get(timeout=0.1)
       main()
       logging.warning('Generated the video!')
+      output_queue.put('NEW_VID')
     except Empty:
       pass
   del detector
