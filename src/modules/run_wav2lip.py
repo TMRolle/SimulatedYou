@@ -12,7 +12,7 @@ from modules.face_detection.api import FaceAlignment, LandmarksType
 from modules.models import Wav2Lip
 import platform
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 cpath=os.path.join(os.path.dirname(__file__), 'checkpoints/wav2lip_gan.pth')
 
@@ -239,7 +239,7 @@ def main():
 
   out.release()
 
-  command = 'ffmpeg -y -i {} -i {} -strict -2 -q:v 1 {}'.format(args["audio"], 'temp/result.avi', args["outfile"])
+  command = 'ffmpeg -y -i {} -i {} -loglevel error -strict -2 -q:v 1 {}'.format(args["audio"], 'temp/result.avi', args["outfile"])
   subprocess.call(command, shell=platform.system() != 'Windows')
 
 def run_wav2lip(exit_event: Event, input_queue: Queue, output_queue: Queue):

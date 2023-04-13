@@ -130,3 +130,8 @@ dmypy.json
 
 # Checkpoint files
 *.pth
+
+face.jpg
+output.wav
+output_vid.mp4
+result.avi

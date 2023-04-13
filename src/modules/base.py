@@ -14,6 +14,8 @@ keymap = {
   'l': 'LIST',
   '[': 'LOWER_SENSITIVITY',
   ']': 'RAISE_SENSITIVITY',
+  'PLAYING': 'STOP_RECORD',
+  'FINISHED': 'START_RECORD',
 }
 
 def keyboard_in(exit_event: Event, input_queue: Queue, output_queue: List):
