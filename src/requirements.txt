@@ -7,3 +7,4 @@ openai-whisper
 sounddevice
 playsound
 langchain
+python-vlc

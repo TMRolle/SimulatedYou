@@ -12,12 +12,12 @@ r_whisper_kwargs = {
 
 p_timeout = 30
 
-def no_op(param):
-  logging.warning("Recording already stopped!")
-
-def run_stt(exit_event: Event, input_queue: Queue, output_queue: Queue, device_index = None):
+def run_stt(exit_event: Event, speech_lock: Event, input_queue: Queue, output_queue: Queue, device_index = None):
   # Set up callback function
+  speech_lock.set()
   def stt_callback(r_i, audio_data):
+    if speech_lock.is_set():
+      return
     with open("input.wav", "wb") as wav_file:
       wav_file.write(audio_data.get_wav_data())
     transcript = r_i.recognize_whisper(audio_data, **r_whisper_kwargs)
@@ -25,35 +25,31 @@ def run_stt(exit_event: Event, input_queue: Queue, output_queue: Queue, device_i
     if transcript not in ["", "Thank you."]:
       logging.info(f"Recognized phrase: \"{transcript}\"")
       output_queue.put(transcript)
+      speech_lock.set()
   # Initialize recognizer
   r = sr.Recognizer()
   r.dynamic_energy_threshold = False
-  stop_func = no_op
+  r.pause_threshold = 1.2
   mic = sr.Microphone()
   with mic as source: r.adjust_for_ambient_noise(source)
-  r.energy_threshold = 300
-  is_recording = False
+  stop_func = r.listen_in_background(source, stt_callback)
+  r.energy_threshold = 400
   # Main logic loop
   while not exit_event.is_set():
     try:
       state=input_queue.get(timeout=0.1)
       if state == 'TOGGLE_RECORD':
-        if not is_recording:
-          stop_func = r.listen_in_background(source, stt_callback)
+        if speech_lock.is_set():
           logging.info("Audio recording started")
-          is_recording = True
-        elif is_recording:
-          stop_func(True)
+          speech_lock.clear()
+        elif not speech_lock.is_set():
+          speech_lock.set()
           logging.info("Audio recording stopped")
-          is_recording = False
       elif state == 'CALIBRATE_NOISE':
         logging.info("Calibrating noise level...")
-        if is_recording:
-          stop_func(True)
-          with mic as source: r.adjust_for_ambient_noise(source)
-          stop_func = r.listen_in_background(source, stt_callback)
-        else:
-          with mic as source: r.adjust_for_ambient_noise(source)
+        speech_lock.set()
+        with mic as source: r.adjust_for_ambient_noise(source)
+        speech_lock.clear()
         logging.info("Audio calibration complete.")
       elif state == 'LOWER_SENSITIVITY':
         logging.info(f"Raising energy threshold from {r.energy_threshold} to {r.energy_threshold + 10}")
@@ -61,12 +57,21 @@ def run_stt(exit_event: Event, input_queue: Queue, output_queue: Queue, device_i
       elif state == 'RAISE_SENSITIVITY':
         logging.info(f"Lowering energy threshold from {r.energy_threshold} to {r.energy_threshold - 10}")
         r.energy_threshold-=10
+      elif state == 'STOP_RECORD':
+        speech_lock.set()
+        logging.info("Audio recording stopped")
+        speech_lock.set()
+      elif state == 'START_RECORD':
+        speech_lock.clear()
+        logging.info("Audio recording started")
+        speech_lock.clear()
+
 
     except Empty:
       pass
     # End main logic loop
   logging.info("Terminating speech module")
-  stop_func(False)
+  stop_func(True)
   logging.info("Speech module terminated")
 
 

@@ -8,6 +8,8 @@ from modules.stt import run_stt
 from modules.tts import run_tts
 from modules.run_wav2lip import run_wav2lip
 from modules.new_alpaca import run_alpaca_damn_you
+from modules.syvlc import play_output_file
+from modules.run_cv2 import run_cv2
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +18,7 @@ def main_func(args):
   with Manager() as manager:
     context = multiprocessing.get_context('spawn')
     exit_event = manager.Event()
+    speech_lock = manager.Event()
 
     keyboard_in_queue = manager.Queue()
 
@@ -24,23 +27,35 @@ def main_func(args):
     alpaca_out_queue = manager.Queue()
     tts_out_queue = manager.Queue()
     wav2lip_out_queue = manager.Queue()
+    player_out_queue = manager.Queue()
+
+    cv_in_queue = manager.Queue()
+    cv_out_queue = manager.Queue()
 
     keyboard_interpreter = context.Process(target=keyboard_in, args=(exit_event, keyboard_in_queue, [stt_in_queue]))
-    stt_process = context.Process(target=run_stt, args=(exit_event, stt_in_queue, stt_out_queue))
+    stt_process = context.Process(target=run_stt, args=(exit_event, speech_lock, stt_in_queue, stt_out_queue))
     alpaca_process = context.Process(target=run_alpaca_damn_you, args=(exit_event, stt_out_queue, alpaca_out_queue))
     tts_process = context.Process(target=run_tts, args=(exit_event, alpaca_out_queue, tts_out_queue))
     wav2lip_process = context.Process(target=run_wav2lip, args=(exit_event, tts_out_queue, wav2lip_out_queue))
+    vlc_process = context.Process(target=play_output_file, args=(exit_event, speech_lock, wav2lip_out_queue, keyboard_in_queue))
 
+    cv_process = context.Process(target=run_cv2, args=(exit_event, cv_in_queue, cv_out_queue))
 
     keyboard_interpreter.start()
     stt_process.start()
     alpaca_process.start()
     tts_process.start()
     wav2lip_process.start()
+    vlc_process.start()
+
+    cv_process.start()
 
     while not exit_event.is_set():
       val = getch()
-      keyboard_in_queue.put(val, block=False)
+      if val in ['c','C']:
+        cv_in_queue.put('CAPTURE')
+      else:
+        keyboard_in_queue.put(val, block=False)
       sleep(0.01)
 
     stt_process.join()
@@ -48,6 +63,7 @@ def main_func(args):
     alpaca_process.join()
     tts_process.join()
     wav2lip_process.join()
+    vlc_process.join()
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()

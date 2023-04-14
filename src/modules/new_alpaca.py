@@ -54,7 +54,7 @@ def run_alpaca_damn_you(exit_signal, input_queue, output_queue):
     model=model,
     tokenizer=tokenizer,
 #    max_length=1024,
-    temperature=0.4,
+    temperature=0.8,
     top_p=0.75,
     top_k=40,
     repetition_penalty=1.2,
